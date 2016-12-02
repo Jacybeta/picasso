@@ -37,11 +37,14 @@ import static android.media.ExifInterface.ORIENTATION_ROTATE_270;
 import static android.media.ExifInterface.ORIENTATION_ROTATE_90;
 import static android.media.ExifInterface.ORIENTATION_TRANSPOSE;
 import static android.media.ExifInterface.ORIENTATION_TRANSVERSE;
+import static com.squareup.picasso.MemoryPolicy.isReadFromMemoryCacheOnly;
 import static com.squareup.picasso.MemoryPolicy.shouldReadFromMemoryCache;
 import static com.squareup.picasso.Picasso.LoadedFrom.MEMORY;
 import static com.squareup.picasso.Picasso.Priority;
 import static com.squareup.picasso.Picasso.Priority.LOW;
 import static com.squareup.picasso.Utils.OWNER_HUNTER;
+import static com.squareup.picasso.Utils.OWNER_MAIN;
+import static com.squareup.picasso.Utils.VERB_COMPLETED;
 import static com.squareup.picasso.Utils.VERB_DECODED;
 import static com.squareup.picasso.Utils.VERB_EXECUTING;
 import static com.squareup.picasso.Utils.VERB_JOINED;
@@ -211,6 +214,13 @@ class BitmapHunter implements Runnable {
         }
         return bitmap;
       }
+    }
+
+    if(isReadFromMemoryCacheOnly(memoryPolicy)) {
+      if (picasso.loggingEnabled) {
+        log(OWNER_HUNTER, VERB_DECODED, data.logId(), " load failed. memory only");
+      }
+      return null;
     }
 
     data.networkPolicy = retryCount == 0 ? NetworkPolicy.OFFLINE.index : networkPolicy;

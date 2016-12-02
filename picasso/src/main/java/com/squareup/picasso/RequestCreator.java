@@ -37,6 +37,7 @@ import static com.squareup.picasso.BitmapHunter.forRequest;
 import static com.squareup.picasso.MemoryPolicy.NO_CACHE;
 import static com.squareup.picasso.MemoryPolicy.NO_STORE;
 import static com.squareup.picasso.MemoryPolicy.shouldReadFromMemoryCache;
+import static com.squareup.picasso.MemoryPolicy.isReadFromMemoryCacheOnly;
 import static com.squareup.picasso.Picasso.LoadedFrom.MEMORY;
 import static com.squareup.picasso.Picasso.Priority;
 import static com.squareup.picasso.PicassoDrawable.setBitmap;
@@ -420,7 +421,6 @@ public class RequestCreator {
    */
   public Bitmap get() throws IOException {
     long started = System.nanoTime();
-    checkNotMain();
 
     if (deferred) {
       throw new IllegalStateException("Fit cannot be used with get.");
@@ -431,6 +431,13 @@ public class RequestCreator {
 
     Request finalData = createRequest(started);
     String key = createKey(finalData, new StringBuilder());
+
+    if(isReadFromMemoryCacheOnly(memoryPolicy)) {
+      log(OWNER_MAIN, VERB_COMPLETED, finalData.plainId(), "from " + MEMORY + ". memory only");
+      return picasso.quickMemoryCacheCheck(key);
+    }
+
+    checkNotMain();
 
     Action action = new GetAction(picasso, finalData, memoryPolicy, networkPolicy, tag, key);
     return forRequest(picasso, picasso.dispatcher, picasso.cache, picasso.stats, action).hunt();
@@ -733,6 +740,17 @@ public class RequestCreator {
 
     if (setPlaceholder) {
       setPlaceholder(target, getPlaceholderDrawable());
+    }
+
+    if(isReadFromMemoryCacheOnly(memoryPolicy)) {
+      picasso.cancelRequest(target);
+      if (picasso.loggingEnabled) {
+        log(OWNER_MAIN, VERB_COMPLETED, request.plainId(), " ,memory only, read error ");
+      }
+      if (callback != null) {
+        callback.onError();
+      }
+      return;
     }
 
     Action action =

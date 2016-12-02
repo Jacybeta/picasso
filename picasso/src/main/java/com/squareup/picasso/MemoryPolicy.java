@@ -25,7 +25,12 @@ public enum MemoryPolicy {
    * Skips storing the final result into memory cache. Useful for one-off requests
    * to avoid evicting other bitmaps from the cache.
    */
-  NO_STORE(1 << 1);
+  NO_STORE(1 << 1),
+
+  /**
+   * Only find the image from memory cache(LruCache)
+   */
+  MEMORY_ONLY(1 << 2);
 
   static boolean shouldReadFromMemoryCache(int memoryPolicy) {
     return (memoryPolicy & MemoryPolicy.NO_CACHE.index) == 0;
@@ -33,6 +38,10 @@ public enum MemoryPolicy {
 
   static boolean shouldWriteToMemoryCache(int memoryPolicy) {
     return (memoryPolicy & MemoryPolicy.NO_STORE.index) == 0;
+  }
+
+  static boolean isReadFromMemoryCacheOnly(int memoryPolicy) {
+    return (memoryPolicy & MemoryPolicy.MEMORY_ONLY.index) == MemoryPolicy.MEMORY_ONLY.index;
   }
 
   final int index;
