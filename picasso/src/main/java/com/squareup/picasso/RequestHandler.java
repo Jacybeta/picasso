@@ -56,20 +56,30 @@ public abstract class RequestHandler {
     private final Bitmap bitmap;
     private final InputStream stream;
     private final int exifOrientation;
+    private final long contentLength;
 
     public Result(@NonNull Bitmap bitmap, @NonNull Picasso.LoadedFrom loadedFrom) {
-      this(checkNotNull(bitmap, "bitmap == null"), null, loadedFrom, 0);
+      this(checkNotNull(bitmap, "bitmap == null"), null, loadedFrom, 0, 0);
     }
 
     public Result(@NonNull InputStream stream, @NonNull Picasso.LoadedFrom loadedFrom) {
-      this(null, checkNotNull(stream, "stream == null"), loadedFrom, 0);
+      this(null, checkNotNull(stream, "stream == null"), loadedFrom, 0, 0);
+    }
+
+    public Result(@NonNull InputStream stream, @NonNull Picasso.LoadedFrom loadedFrom, long conentLength) {
+      this(null, checkNotNull(stream, "stream == null"), loadedFrom, 0, conentLength);
+    }
+
+    public Result(@Nullable Bitmap bitmap, @NonNull InputStream stream, @NonNull Picasso.LoadedFrom loadedFrom, int exifOrientation) {
+      this(bitmap, checkNotNull(stream, "stream == null"), loadedFrom, exifOrientation, 0);
     }
 
     Result(
         @Nullable Bitmap bitmap,
         @Nullable InputStream stream,
         @NonNull Picasso.LoadedFrom loadedFrom,
-        int exifOrientation) {
+        int exifOrientation,
+        long contentLength) {
       if (!(bitmap != null ^ stream != null)) {
         throw new AssertionError();
       }
@@ -77,6 +87,7 @@ public abstract class RequestHandler {
       this.stream = stream;
       this.loadedFrom = checkNotNull(loadedFrom, "loadedFrom == null");
       this.exifOrientation = exifOrientation;
+      this.contentLength = contentLength;
     }
 
     /** The loaded {@link Bitmap}. Mutually exclusive with {@link #getStream()}. */
@@ -103,6 +114,10 @@ public abstract class RequestHandler {
      */
     int getExifOrientation() {
       return exifOrientation;
+    }
+
+    long getContentLength() {
+      return contentLength;
     }
   }
 

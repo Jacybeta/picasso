@@ -21,6 +21,8 @@ import android.graphics.Matrix;
 import android.net.NetworkInfo;
 import android.os.Build;
 import android.view.Gravity;
+
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintWriter;
@@ -43,8 +45,6 @@ import static com.squareup.picasso.Picasso.LoadedFrom.MEMORY;
 import static com.squareup.picasso.Picasso.Priority;
 import static com.squareup.picasso.Picasso.Priority.LOW;
 import static com.squareup.picasso.Utils.OWNER_HUNTER;
-import static com.squareup.picasso.Utils.OWNER_MAIN;
-import static com.squareup.picasso.Utils.VERB_COMPLETED;
 import static com.squareup.picasso.Utils.VERB_DECODED;
 import static com.squareup.picasso.Utils.VERB_EXECUTING;
 import static com.squareup.picasso.Utils.VERB_JOINED;
@@ -162,9 +162,40 @@ class BitmapHunter implements Runnable {
     }
   }
 
-  @Override public void run() {
-    try {
-      updateThreadName(data);
+    Bitmap decodeStreamAndCallbackProgress(InputStream stream, Request request, long contentLength) throws IOException {
+        final BitmapFactory.Options options = RequestHandler.createBitmapOptions(request);
+        final boolean calculateSize = RequestHandler.requiresInSampleSize(options);
+        byte[] bytes = toByteArrayAndCallbackProgress(stream, contentLength);
+        if (calculateSize) {
+            BitmapFactory.decodeByteArray(bytes, 0, bytes.length, options);
+            RequestHandler.calculateInSampleSize(request.targetWidth, request.targetHeight, options,
+                    request);
+        }
+        Bitmap bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.length, options);
+        if (bitmap == null) {
+            // Treat null as an IO exception, we will eventually retry.
+            throw new IOException("Failed to decode stream.");
+        }
+        return bitmap;
+    }
+
+    byte[] toByteArrayAndCallbackProgress(InputStream input, long contentLength) throws IOException {
+        ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+        byte[] buffer = new byte[1024 * 4];
+        int n;
+        long decodeLength = 0;
+        while (-1 != (n = input.read(buffer))) {
+            byteArrayOutputStream.write(buffer, 0, n);
+            decodeLength += n;
+            action.progress(loadedFrom, decodeLength, contentLength);
+        }
+        return byteArrayOutputStream.toByteArray();
+    }
+
+    @Override
+    public void run() {
+        try {
+            updateThreadName(data);
 
       if (picasso.loggingEnabled) {
         log(OWNER_HUNTER, VERB_EXECUTING, getLogIdsForHunter(this));
@@ -216,25 +247,25 @@ class BitmapHunter implements Runnable {
       }
     }
 
-    if(isReadFromMemoryCacheOnly(memoryPolicy)) {
-      if (picasso.loggingEnabled) {
-        log(OWNER_HUNTER, VERB_DECODED, data.logId(), " load failed. memory only");
-      }
-      return null;
+    if (isReadFromMemoryCacheOnly(memoryPolicy)) {
+        if (picasso.loggingEnabled) {
+            log(OWNER_HUNTER, VERB_DECODED, data.logId(), " load failed. memory only");
+        }
+        return null;
     }
 
     data.networkPolicy = retryCount == 0 ? NetworkPolicy.OFFLINE.index : networkPolicy;
     RequestHandler.Result result = requestHandler.load(data, networkPolicy);
     if (result != null) {
-      loadedFrom = result.getLoadedFrom();
-      exifOrientation = result.getExifOrientation();
-      bitmap = result.getBitmap();
+        loadedFrom = result.getLoadedFrom();
+        exifOrientation = result.getExifOrientation();
+        bitmap = result.getBitmap();
 
       // If there was no Bitmap then we need to decode it from the stream.
       if (bitmap == null) {
         InputStream is = result.getStream();
         try {
-          bitmap = decodeStream(is, data);
+          bitmap = decodeStreamAndCallbackProgress(is, data, result.getContentLength());
         } finally {
           Utils.closeQuietly(is);
         }
@@ -242,29 +273,29 @@ class BitmapHunter implements Runnable {
     }
 
     if (bitmap != null) {
-      if (picasso.loggingEnabled) {
-        log(OWNER_HUNTER, VERB_DECODED, data.logId());
-      }
-      stats.dispatchBitmapDecoded(bitmap);
-      if (data.needsTransformation() || exifOrientation != 0) {
-        synchronized (DECODE_LOCK) {
-          if (data.needsMatrixTransform() || exifOrientation != 0) {
-            bitmap = transformResult(data, bitmap, exifOrientation);
-            if (picasso.loggingEnabled) {
-              log(OWNER_HUNTER, VERB_TRANSFORMED, data.logId());
-            }
-          }
-          if (data.hasCustomTransformations()) {
-            bitmap = applyCustomTransformations(data.transformations, bitmap);
-            if (picasso.loggingEnabled) {
-              log(OWNER_HUNTER, VERB_TRANSFORMED, data.logId(), "from custom transformations");
-            }
-          }
+        if (picasso.loggingEnabled) {
+            log(OWNER_HUNTER, VERB_DECODED, data.logId());
         }
-        if (bitmap != null) {
-          stats.dispatchBitmapTransformed(bitmap);
+        stats.dispatchBitmapDecoded(bitmap);
+        if (data.needsTransformation() || exifOrientation != 0) {
+            synchronized (DECODE_LOCK) {
+                if (data.needsMatrixTransform() || exifOrientation != 0) {
+                    bitmap = transformResult(data, bitmap, exifOrientation);
+                    if (picasso.loggingEnabled) {
+                        log(OWNER_HUNTER, VERB_TRANSFORMED, data.logId());
+                    }
+                }
+                if (data.hasCustomTransformations()) {
+                    bitmap = applyCustomTransformations(data.transformations, bitmap);
+                    if (picasso.loggingEnabled) {
+                        log(OWNER_HUNTER, VERB_TRANSFORMED, data.logId(), "from custom transformations");
+                    }
+                }
+            }
+            if (bitmap != null) {
+                stats.dispatchBitmapTransformed(bitmap);
+            }
         }
-      }
     }
 
     return bitmap;

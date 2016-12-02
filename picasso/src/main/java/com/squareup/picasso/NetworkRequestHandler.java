@@ -71,7 +71,7 @@ class NetworkRequestHandler extends RequestHandler {
     if (loadedFrom == NETWORK && response.getContentLength() > 0) {
       stats.dispatchDownloadFinished(response.getContentLength());
     }
-    return new Result(is, loadedFrom);
+    return new Result(is, loadedFrom, response.getContentLength());
   }
 
   @Override int getRetryCount() {
