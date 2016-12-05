@@ -1,3 +1,8 @@
+添加了功能
+=======
+1. 支持仅从内存中get bitmap和into imageview，MemoryPolicy.isReadFromMemoryCacheOnly
+2. 支持图片下载进度, Callback.onProgress
+
 Picasso
 =======
 

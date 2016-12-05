@@ -79,4 +79,11 @@ class ImageViewAction extends Action<ImageView> {
       callback = null;
     }
   }
+
+  @Override
+  void progress(Picasso.LoadedFrom from, long progess, long total) {
+    if (callback != null) {
+      callback.onProgress(from, progess, total);
+    }
+  }
 }

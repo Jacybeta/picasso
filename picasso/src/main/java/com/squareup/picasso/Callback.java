@@ -20,12 +20,18 @@ public interface Callback {
 
   void onError();
 
+  void onProgress(Picasso.LoadedFrom from, long progess, long total);
+
   public static class EmptyCallback implements Callback {
 
     @Override public void onSuccess() {
     }
 
     @Override public void onError() {
+    }
+
+    @Override
+    public void onProgress(Picasso.LoadedFrom from, long progess, long total) {
     }
   }
 }

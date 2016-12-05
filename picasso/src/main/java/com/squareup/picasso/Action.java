@@ -68,7 +68,6 @@ abstract class Action<T> {
   abstract void error();
 
   void progress(Picasso.LoadedFrom from, long progess, long total) {
-    Log.d("Action", "from="+from+", p="+progess+", t="+total);
   }
 
   void cancel() {
