@@ -14,7 +14,7 @@ ext {
   targetSdkVersion = 24
   sourceCompatibilityVersion = JavaVersion.VERSION_1_7
   targetCompatibilityVersion = JavaVersion.VERSION_1_7
-  okhttp3Version = '3.0.1'
+  okhttp3Version = '3.4.2'
   supportLibrariesVersion = '24.0.0'
 
   dep = [
@@ -61,7 +61,7 @@ android {
 }
 
 dependencies {
-  provided dep.okhttp
+//  provided dep.okhttp
   provided dep.okhttp3
   compile dep.supportAnnotations
   testCompile dep.junit

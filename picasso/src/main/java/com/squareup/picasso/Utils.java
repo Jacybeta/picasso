@@ -256,11 +256,6 @@ final class Utils {
         return OkHttp3DownloaderCreator.create(context);
       } catch (ClassNotFoundException ignored) {
       }
-      try {
-        Class.forName("com.squareup.okhttp.OkHttpClient");
-        return OkHttpDownloaderCreator.create(context);
-      } catch (ClassNotFoundException ignored) {
-      }
     }
     return new UrlConnectionDownloader(context);
   }
@@ -442,12 +437,6 @@ final class Utils {
   private static class BitmapHoneycombMR1 {
     static int getByteCount(Bitmap bitmap) {
       return bitmap.getByteCount();
-    }
-  }
-
-  private static class OkHttpDownloaderCreator {
-    static Downloader create(Context context) {
-      return new OkHttpDownloader(context);
     }
   }
 
